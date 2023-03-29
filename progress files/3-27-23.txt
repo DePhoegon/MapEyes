@@ -1,0 +1,13 @@
+Introduced
+- Functional GPS check
+- Functional GPS Permissions Check
+- Functional GPS Permissions Ask
+- Functional Map Maker at location
+
+Using
+ Temp Static
+
+ To add
+ - Update on Tap
+ - Get road Data to show
+ - Get Weather data to show.
