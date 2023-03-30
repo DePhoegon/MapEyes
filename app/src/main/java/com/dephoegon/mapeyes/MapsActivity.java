@@ -176,11 +176,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                         }
                         if (mainGroup.has("temp")) {
                             double hold = Maths.Fahrenheit(temp);
-                            wTitle = wTitle + " - Temperature -> F'"+ String.format(Locale.US, "%.2f", hold);
+                            wTitle = wTitle + " - Temp -> F'"+ String.format(Locale.US, "%.2f", hold);
                         }
                         if (windGroup.has("speed")) {
-                            if (wSpeed > 32) { wTitle = " Wind Warn-> "+ String.format(Locale.US, "%.2f", wSpeed) + " - " + wTitle; }
-                            if (wGusts > 45) { wTitle = "Gusts Warn-> " + String.format(Locale.US, "%.2f", wGusts) + " - " + wTitle; }
+                            if (wSpeed > 32) { wTitle = " Winds -> "+ String.format(Locale.US, "%.2f", wSpeed) + " - " + wTitle; }
+                            if (wGusts > 45) { wTitle = " Gusts -> " + String.format(Locale.US, "%.2f", wGusts) + " - " + wTitle; }
                             String Dir = Maths.Direction(wDirection);
                             wTitle = wTitle + " - Wind Dir -> " + Dir;
                         }
