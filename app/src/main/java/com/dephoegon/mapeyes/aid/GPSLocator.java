@@ -1,4 +1,4 @@
-package com.dephoegon.mapeyes;
+package com.dephoegon.mapeyes.aid;
 
 import static com.dephoegon.mapeyes.MapsActivity.findMyLocation;
 

@@ -1,0 +1,14 @@
+Weather
+-got OpenWeather API key
+- Tap Markers now give soft weather feedback
+== City/Area Name
+== High Wind Speed warning
+== High Wind Gusts warning
+== wind direction
+== Temperature in F'
+
+Sanity Check
+- Double Check for Empty Arrays
+
+Array Marker Options
+- Slimmed adding/cycling of them
