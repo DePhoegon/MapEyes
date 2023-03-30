@@ -37,9 +37,7 @@ public class GPSLocator implements LocationListener {
     }
 
     @Override
-    public void onLocationChanged(Location location) {
-        findMyLocation(location);
-    }
+    public void onLocationChanged(Location location) { findMyLocation(location); }
 
     @Override
     public void onStatusChanged(String provider, int status, Bundle extras) {

@@ -1,4 +1,4 @@
 <resources>
-    <string name="app_name">Map Eyes</string>
-    <string name="title_activity_maps">MapsActivity</string>
+    <string name="app_name">DePhoegon Eyes</string>
+    <string name="title_activity_maps">Drivers Map</string>
 </resources>

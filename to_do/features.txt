@@ -1,7 +1,5 @@
 -Store Map Markers
 = Recall Store Markers
 - Bounding Boxes on map size
-== text for largest, targeting major highways
-- get weather overlay
 - Redesign buttons to google maps to be larger
-- Custom Text prompts for Markers - X.X
+- Set Pin Colors based on conditions.

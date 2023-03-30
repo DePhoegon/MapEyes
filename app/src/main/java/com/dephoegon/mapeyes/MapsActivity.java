@@ -35,20 +35,20 @@ import java.util.ArrayList;
 import java.util.Locale;
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback {
-
-    private static GoogleMap mMap;
-    private ActivityMapsBinding binding;
-    private static LatLng current;
+    private static int locationPinWeatherCountLimit = 0;
+    private static final int resetLocationWeatherLimit = 15;
+    private static GoogleMap theMap;
+    private static LatLng currentLatLong;
     private static String pinText;
-    private static final LatLng fallBack = new LatLng(40.758701, -111.876183);
-    static ArrayList<MarkerOptions> markers = new ArrayList<>();
+    private static final String updatePinTextLocation = "Current Location";
+    static ArrayList<MarkerOptions> markerArray = new ArrayList<>();
     public static JSONObject weatherJSON;
-    private static GoogleMap getMap() { return mMap; }
+    private static GoogleMap getMap() { return theMap; }
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        binding = ActivityMapsBinding.inflate(getLayoutInflater());
+        com.dephoegon.mapeyes.databinding.ActivityMapsBinding binding = ActivityMapsBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
         if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             if (ActivityCompat.shouldShowRequestPermissionRationale(this, android.Manifest.permission.ACCESS_FINE_LOCATION)) {
@@ -69,10 +69,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
                     Toast.makeText(this, "Permission Granted", Toast.LENGTH_SHORT).show();
-                    mMap.setMyLocationEnabled(true);
+                    theMap.setMyLocationEnabled(true);
                 }
             } else { Toast.makeText(this, "Permission Denied", Toast.LENGTH_SHORT).show(); }
-            pokeMap(mMap);
+            initialMapPoke(theMap);
         } else if (requestCode == 2) {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 if(ContextCompat.checkSelfPermission(this, Manifest.permission.INTERNET) == PackageManager.PERMISSION_GRANTED) { Toast.makeText(this, "Permission Granted", Toast.LENGTH_SHORT).show(); }
@@ -80,48 +80,34 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
     }
     public static void findMyLocation(@NonNull Location arg0) {
-        mMap = getMap();
-        mMap.clear();
-
-        LatLng find = new LatLng(arg0.getLatitude(), arg0.getLongitude());
-        current = find;
-        pinText = "Find Me via Location Change";
-        //load the traffic now
-        mMap.setTrafficEnabled(true);
-        mMap.setOnMapClickListener((listener)-> {
-            LatLng mark = new LatLng(listener.latitude, listener.longitude);
-            getJSON(mark.latitude, mark.longitude, mMap);
-            mMap.clear();
-            mMap.moveCamera(CameraUpdateFactory.newLatLng(mark));
-        });
-        mMap.clear();
-        mMap.moveCamera(CameraUpdateFactory.newLatLng(find));
-        if (markers.size() > 0) { pokeMapMarkers(mMap, markers); } else { pokeMapMarkers(mMap, null); }
+        theMap = getMap();
+        theMap.clear();
+        setCurrentLatLong(arg0.getLatitude(), arg0.getLongitude());
+        pinText = updatePinTextLocation;
+        if (markerArray.isEmpty()) { currentLocationPin(currentLatLong.latitude, currentLatLong.longitude, pinText, theMap, null, true); }
+        else { currentLocationPin(currentLatLong.latitude, currentLatLong.longitude, pinText, theMap, markerArray, true); }
     }
     @Override
-    public void onMapReady(@NonNull GoogleMap googleMap) { pokeMap(googleMap); }
-    private static void pokeMapMarkers(@NonNull GoogleMap map, ArrayList<MarkerOptions> arrayList) {
-        if (arrayList != null){ arrayList.forEach(map::addMarker); }
-        LatLng test = current == null ? fallBack : current;
-        String text = pinText == null ? "Default Fallback" : pinText;
-        map.addMarker(new MarkerOptions().position(test).title(text));
-        pinText = null;
+    public void onMapReady(@NonNull GoogleMap googleMap) {
+        theMap = googleMap;
+        theMap.clear();
+        theMap.setTrafficEnabled(true);
+        theMap.setOnMapClickListener((listener)-> {
+            if (locationPinWeatherCountLimit < 1) { locationPinWeatherCountLimit = 1; }
+            getAsyncWeatherPin(listener.latitude, listener.longitude, theMap);
+        });
+        initialMapPoke(googleMap);
     }
-    private void pokeMap(GoogleMap map) {
+    private static void setCurrentLatLong(double lat, double lon) { currentLatLong = new LatLng(lat, lon); }
+    private void initialMapPoke(GoogleMap map) {
         GPSLocator gpsLocator = new GPSLocator(getApplicationContext());
         Location location = gpsLocator.GetLocation();
-        LatLng SLC;
-
-        mMap = map;
-        current = location == null ? null : new LatLng(location.getLatitude(), location.getLongitude());
-        SLC = location == null ? fallBack : current;
-        pinText = location == null ? "Default Fallback" : pinText == null ? "Marker on Current Location" : pinText;
-        mMap.clear();
-        mMap.addMarker(new MarkerOptions().position(SLC).title(pinText));
-        mMap.moveCamera(CameraUpdateFactory.newLatLng(SLC));
-        pinText = null;
+        theMap = map;
+        setCurrentLatLong(location.getLatitude(), location.getLongitude());
+        locationPinWeatherCountLimit = 0;
+        getAsyncWeatherPin(location.getLatitude(), location.getLongitude(), theMap);
     }
-    public static void getJSON(double lat, double lon, GoogleMap map) {
+    public static void getAsyncWeatherPin(double lat, double lon, GoogleMap map) {
         new AsyncTask<Void, Void, Void>() {
             @Override
             protected void onPreExecute() { super.onPreExecute(); }
@@ -133,7 +119,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     HttpURLConnection connection = (HttpURLConnection) url.openConnection();
                     BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
                     StringBuilder json = new StringBuilder(4096);
-                    String tmp = "";
+                    String tmp;
 
                     while ((tmp = reader.readLine()) != null) { json.append(tmp).append("\n"); }
                     reader.close();
@@ -146,37 +132,37 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             @Override
             protected void onPostExecute(Void Void) {
                 if (weatherJSON != null) {
-                    JSONObject weatherJSON1 = weatherJSON;
+                    JSONObject weatherHolder = weatherJSON;
                     JSONObject mainGroup;
                     JSONObject windGroup;
                     int visibility;
-                    double temp;
+                    double wTemp;
                     double wSpeed;
                     double wGusts;
                     int wDirection;
-                    String wTitle = "WeatherTag";
+                    String wTitle;
 
-                    try { visibility = weatherJSON1.getInt("visibility"); }
+                    try { visibility = weatherHolder.getInt("visibility"); }
                     catch (JSONException e) { return; }
                     try {
-                        mainGroup = weatherJSON1.getJSONObject("main");
-                        temp = mainGroup.getDouble("temp");
+                        mainGroup = weatherHolder.getJSONObject("main");
+                        wTemp = mainGroup.getDouble("temp");
                     } catch (JSONException e) { return; } // Mains/temp
                     try {
-                        windGroup = weatherJSON1.getJSONObject("wind");
+                        windGroup = weatherHolder.getJSONObject("wind");
                         wSpeed = windGroup.getDouble("speed");
                         wGusts = windGroup.getDouble("gust");
                         wDirection = windGroup.getInt("deg");
                     } catch (JSONException e) { return; } // Winds
-                    try { wTitle = weatherJSON1.getString("name"); }
+                    try { wTitle = "| "+weatherHolder.getString("name")+" |"; }
                     catch (JSONException e) { return; }
-                    if (weatherJSON1.has("main")) {
-                        if (weatherJSON1.has("visibility") && visibility < 500) {
+                    if (weatherHolder.has("main")) {
+                        if (weatherHolder.has("visibility") && visibility < 500) {
                             wTitle = wTitle +" - Low Vis -> "+ visibility+"Meters";
                         }
                         if (mainGroup.has("temp")) {
-                            double hold = Maths.Fahrenheit(temp);
-                            wTitle = wTitle + " - Temp -> F'"+ String.format(Locale.US, "%.2f", hold);
+                            double hold = Maths.Fahrenheit(wTemp);
+                            wTitle = wTitle + " - Temp -> "+ String.format(Locale.US, "%.2f", hold)+"F°";
                         }
                         if (windGroup.has("speed")) {
                             if (wSpeed > 32) { wTitle = " Winds -> "+ String.format(Locale.US, "%.2f", wSpeed) + " - " + wTitle; }
@@ -185,24 +171,43 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                             wTitle = wTitle + " - Wind Dir -> " + Dir;
                         }
                     }
-                    addWeatherMarkers(lat, lon, wTitle, map);
+                    if (locationPinWeatherCountLimit < 1) {
+                        wTitle = "Cur Loc "+wTitle;
+                        locationPinWeatherCountLimit = resetLocationWeatherLimit;
+                        if (markerArray.isEmpty()) {currentLocationPin(lat, lon, wTitle, map, null, true); }
+                        else { currentLocationPin(lat, lon, wTitle, map, markerArray, true); }
+                    } else { weatherLocationPins(lat, lon, wTitle, map); }
                 }
             }
         }.execute();
     }
-    private static void addWeatherMarkers(double lat, double lon, String markerTitle, GoogleMap map) {
-        LatLng mark = new LatLng(lat, lon);
-        MarkerOptions options = new MarkerOptions().position(mark).title(markerTitle);
+    private static void currentLocationPin(double lat, double lon, String markerTitle, @NonNull GoogleMap map, ArrayList<MarkerOptions> arrayList, boolean moveMap) {
+        if (locationPinWeatherCountLimit > 0){
+            map.clear();
+            if (lat != 200 && lon != 200) { setCurrentLatLong(lat, lon); }
+            pinText = markerTitle;
+            MarkerOptions options = new MarkerOptions().position(currentLatLong).title(markerTitle);
+            if (moveMap) { map.moveCamera(CameraUpdateFactory.newLatLng(currentLatLong)); }
+            map.addMarker(options);
+            if (arrayList != null){ markerArray.forEach(map::addMarker); }
+            locationPinWeatherCountLimit -= 1;
+        } else { getAsyncWeatherPin(currentLatLong.latitude, currentLatLong.longitude, map); }
+    }
+    private static void weatherLocationPins(double lat, double lon, String markerTitle, GoogleMap map) {
+        MarkerOptions options = new MarkerOptions().position(new LatLng(lat, lon)).title(markerTitle);
         ArrayList<MarkerOptions> temp = new ArrayList<>();
-        // > 6 -- Max Size 7 ( #+1)
-        if (markers.size() > 6) {
-            for (int i = 0; i < markers.size(); i++) {
-                if (i-1 > -1) { temp.add(markers.get(i)); }
-                if (i == markers.size()-1) { temp.add(options); }
+        final int countCut = 1;
+        final int maxArraySize = 6; // Max Size = +1
+        if (markerArray.size() > maxArraySize) {
+            for (int i = 0; i < markerArray.size(); i++) {
+                if (i-countCut >= 0) { temp.add(markerArray.get(i)); }
+                if (i == markerArray.size()-countCut) { temp.add(options); }
             }
-            markers = temp;
-        } else { markers.add(options); }
-        map.clear();
-        if (markers.size() > 0){ pokeMapMarkers(map, markers); } else { pokeMapMarkers(map, null); }
+            markerArray = temp;
+        } else { markerArray.add(options); }
+        String textOnPin = pinText;
+
+        map.moveCamera(CameraUpdateFactory.newLatLng(new LatLng(lat, lon)));
+        currentLocationPin(200, 200, textOnPin, map, markerArray, false);
     }
 }

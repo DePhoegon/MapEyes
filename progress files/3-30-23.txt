@@ -1,0 +1,15 @@
+Logic Tweaking
+- Added Weather pin on a cycle to current location pin
+- Cleaned up Title Naming
+- Pruned needless Methods
+- allowed for controllable size & dropping of markers from the array
+== Not user accessible
+- Re-added Internet permissions
+-Moved ' setOnMapClickListener ' to Map Ready
+- Cleaned up Names
+- Preserved Proper marker Titles on weather pins
+- pruned useless map rulesets
+
+Weather Overlay
+- Pin use instead
+
