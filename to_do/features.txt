@@ -2,4 +2,11 @@
 = Recall Store Markers
 - Bounding Boxes on map size
 - Redesign buttons to google maps to be larger
-- Set Pin Colors based on conditions.
+
+
+Future plans
+- design shapes for pins
+= 1 for GPS
+= 1 for Each level of tripped
+== 3-4 Trips max
+~~~ multiple conditions can be worthy of just a full no no.

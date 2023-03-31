@@ -13,3 +13,7 @@ Logic Tweaking
 Weather Overlay
 - Pin use instead
 
+Pins
+-Colorized
+= the Vehicle/GPS device is giving a unique color.
+= 4 colors for the weather pins.

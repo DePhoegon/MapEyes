@@ -21,6 +21,7 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
 
@@ -35,14 +36,17 @@ import java.util.ArrayList;
 import java.util.Locale;
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback {
-    private static int locationPinWeatherCountLimit = 0;
-    private static final int resetLocationWeatherLimit = 15;
     private static GoogleMap theMap;
     private static LatLng currentLatLong;
     private static String pinText;
     private static final String updatePinTextLocation = "Current Location";
     static ArrayList<MarkerOptions> markerArray = new ArrayList<>();
     public static JSONObject weatherJSON;
+    private static final float defaultPinCarColor = BitmapDescriptorFactory.HUE_VIOLET;
+    private static final float thirdTripPinWeatherColor = 345f; //#FF0040
+    private static final float secondTripPinWeatherColor = 35f; //#FF9500
+    private static final float firstTripPinWeatherColor = 60f; //#FFFF00
+    private static final float zeroTripPinWeatherColor = 135f; //#00FF40
     private static GoogleMap getMap() { return theMap; }
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -92,20 +96,16 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         theMap = googleMap;
         theMap.clear();
         theMap.setTrafficEnabled(true);
-        theMap.setOnMapClickListener((listener)-> {
-            if (locationPinWeatherCountLimit < 1) { locationPinWeatherCountLimit = 1; }
-            getAsyncWeatherPin(listener.latitude, listener.longitude, theMap);
-        });
-        initialMapPoke(googleMap);
+        theMap.setOnMapClickListener((listener)-> getAsyncWeatherPin(listener.latitude, listener.longitude, theMap));
+        initialMapPoke(theMap);
     }
     private static void setCurrentLatLong(double lat, double lon) { currentLatLong = new LatLng(lat, lon); }
     private void initialMapPoke(GoogleMap map) {
+        theMap = map;
         GPSLocator gpsLocator = new GPSLocator(getApplicationContext());
         Location location = gpsLocator.GetLocation();
-        theMap = map;
         setCurrentLatLong(location.getLatitude(), location.getLongitude());
-        locationPinWeatherCountLimit = 0;
-        getAsyncWeatherPin(location.getLatitude(), location.getLongitude(), theMap);
+        currentLocationPin(currentLatLong.latitude, currentLatLong.longitude, updatePinTextLocation, theMap, null, true);
     }
     public static void getAsyncWeatherPin(double lat, double lon, GoogleMap map) {
         new AsyncTask<Void, Void, Void>() {
@@ -115,12 +115,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             protected Void doInBackground(Void... params) {
                 try {
                     URL url = new URL("https://api.openweathermap.org/data/2.5/weather?lat=" + lat + "&lon=" + lon + "&appid=" + OPEN_WEATHER_API_KEY);
-
                     HttpURLConnection connection = (HttpURLConnection) url.openConnection();
                     BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
                     StringBuilder json = new StringBuilder(4096);
                     String tmp;
-
                     while ((tmp = reader.readLine()) != null) { json.append(tmp).append("\n"); }
                     reader.close();
 
@@ -141,6 +139,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     double wGusts;
                     int wDirection;
                     String wTitle;
+                    int trippedWarnings = 0;
 
                     try { visibility = weatherHolder.getInt("visibility"); }
                     catch (JSONException e) { return; }
@@ -159,42 +158,41 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     if (weatherHolder.has("main")) {
                         if (weatherHolder.has("visibility") && visibility < 500) {
                             wTitle = wTitle +" - Low Vis -> "+ visibility+"Meters";
+                            trippedWarnings += 1;
                         }
                         if (mainGroup.has("temp")) {
                             double hold = Maths.Fahrenheit(wTemp);
                             wTitle = wTitle + " - Temp -> "+ String.format(Locale.US, "%.2f", hold)+"F°";
                         }
                         if (windGroup.has("speed")) {
-                            if (wSpeed > 32) { wTitle = " Winds -> "+ String.format(Locale.US, "%.2f", wSpeed) + " - " + wTitle; }
-                            if (wGusts > 45) { wTitle = " Gusts -> " + String.format(Locale.US, "%.2f", wGusts) + " - " + wTitle; }
+                            if (wSpeed > 32) {
+                                wTitle = " Winds -> "+ String.format(Locale.US, "%.2f", wSpeed) + " - " + wTitle;
+                                trippedWarnings +=1;
+                            }
+                            if (wGusts > 45) {
+                                wTitle = " Gusts -> " + String.format(Locale.US, "%.2f", wGusts) + " - " + wTitle;
+                                trippedWarnings +=1;
+                            }
                             String Dir = Maths.Direction(wDirection);
                             wTitle = wTitle + " - Wind Dir -> " + Dir;
                         }
                     }
-                    if (locationPinWeatherCountLimit < 1) {
-                        wTitle = "Cur Loc "+wTitle;
-                        locationPinWeatherCountLimit = resetLocationWeatherLimit;
-                        if (markerArray.isEmpty()) {currentLocationPin(lat, lon, wTitle, map, null, true); }
-                        else { currentLocationPin(lat, lon, wTitle, map, markerArray, true); }
-                    } else { weatherLocationPins(lat, lon, wTitle, map); }
+                    weatherLocationPins(lat, lon, wTitle, map, trippedWarnings);
                 }
             }
         }.execute();
     }
     private static void currentLocationPin(double lat, double lon, String markerTitle, @NonNull GoogleMap map, ArrayList<MarkerOptions> arrayList, boolean moveMap) {
-        if (locationPinWeatherCountLimit > 0){
-            map.clear();
-            if (lat != 200 && lon != 200) { setCurrentLatLong(lat, lon); }
-            pinText = markerTitle;
-            MarkerOptions options = new MarkerOptions().position(currentLatLong).title(markerTitle);
-            if (moveMap) { map.moveCamera(CameraUpdateFactory.newLatLng(currentLatLong)); }
-            map.addMarker(options);
-            if (arrayList != null){ markerArray.forEach(map::addMarker); }
-            locationPinWeatherCountLimit -= 1;
-        } else { getAsyncWeatherPin(currentLatLong.latitude, currentLatLong.longitude, map); }
+        map.clear();
+        if (lat != 200 && lon != 200) { setCurrentLatLong(lat, lon); }
+        pinText = markerTitle;
+        MarkerOptions options = new MarkerOptions().position(currentLatLong).title(markerTitle).icon(BitmapDescriptorFactory.defaultMarker(defaultPinCarColor));
+        if (moveMap) { map.moveCamera(CameraUpdateFactory.newLatLng(currentLatLong)); }
+        map.addMarker(options);
+        if (arrayList != null){ markerArray.forEach(map::addMarker); }
     }
-    private static void weatherLocationPins(double lat, double lon, String markerTitle, GoogleMap map) {
-        MarkerOptions options = new MarkerOptions().position(new LatLng(lat, lon)).title(markerTitle);
+    private static void weatherLocationPins(double lat, double lon, String markerTitle, GoogleMap map, int warningTrips) {
+        MarkerOptions options = new MarkerOptions().position(new LatLng(lat, lon)).title(markerTitle).icon(BitmapDescriptorFactory.defaultMarker(hueColor(warningTrips)));
         ArrayList<MarkerOptions> temp = new ArrayList<>();
         final int countCut = 1;
         final int maxArraySize = 6; // Max Size = +1
@@ -209,5 +207,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         map.moveCamera(CameraUpdateFactory.newLatLng(new LatLng(lat, lon)));
         currentLocationPin(200, 200, textOnPin, map, markerArray, false);
+    }
+    private static float hueColor(int trips) {
+        if (trips == 0) { return zeroTripPinWeatherColor; }
+        if (trips == 1) { return firstTripPinWeatherColor; }
+        if (trips == 2) { return secondTripPinWeatherColor; }
+        return thirdTripPinWeatherColor;
     }
 }
