@@ -1,0 +1,13 @@
+1.0 Pre-release
+- New App Icon
+- App Name Adjusted
+- Custom Map Marker Icons Made
+- Custom Map Marker Icons Colored
+- Avoided Mistake with Statics
+- No Map Pins will be stored
+-- No foreseeable reason for it.
+- Added in Info boxes to map Makers
+-- tap show/hide on marker
+-- tap hide on infobox
+
+Giving Myself 1-2 days to sit & think on it in the background for anything to come up that needs to be addressed.

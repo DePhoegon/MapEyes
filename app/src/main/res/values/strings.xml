@@ -1,4 +1,5 @@
 <resources>
-    <string name="app_name">DePhoegon Eyes</string>
-    <string name="title_activity_maps">Drivers Map</string>
+    <string name="app_name">Drivers TapChecking Map</string>
+    <string name="title_activity_maps">Map Weather TapCheck</string>
+    <string name="app_desc">One-tap quick checks on viable conditions for driving.</string>
 </resources>
