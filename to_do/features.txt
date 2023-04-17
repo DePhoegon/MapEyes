@@ -1,4 +1,4 @@
 woot
 - To be filled out with more feedback data
 
-Get various ANdroid phones to test with.
+Get various Android phones to test with.

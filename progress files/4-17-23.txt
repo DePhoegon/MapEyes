@@ -1,0 +1,3 @@
+Preparations for publishing app.
+
+added an override for disabled providers (just in case)

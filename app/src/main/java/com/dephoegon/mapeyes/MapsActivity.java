@@ -11,6 +11,7 @@ import android.graphics.drawable.Drawable;
 import android.location.Location;
 import android.location.LocationManager;
 import android.os.AsyncTask;
+import android.os.Build;
 import android.os.Bundle;
 import android.widget.Toast;
 
@@ -43,7 +44,7 @@ import java.util.ArrayList;
 import java.util.Locale;
 
 public class MapsActivity extends FragmentActivity implements GoogleMap.OnInfoWindowClickListener, OnMapReadyCallback {
-    private static GoogleMap theMap;
+    public static GoogleMap theMap;
     private static LatLng currentLatLong;
     private static String pinText;
     private static final String updatePinTextLocation = "Current Location";
@@ -53,8 +54,6 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnInfoWi
     Location gps_loc;
     Location network_loc;
     Location final_loc;
-    double longitude;
-    double latitude;
 
     private static Context getThisAppContext() {
         return thisAppContext;
@@ -132,19 +131,14 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnInfoWi
         theMap.setOnMapClickListener((listener) -> getAsyncWeatherPin(listener.latitude, listener.longitude, theMap));
         theMap.setOnInfoWindowClickListener(this);
         theMap.setOnMarkerClickListener((marker) -> {
-            if (marker.isInfoWindowShown()) {
-                marker.hideInfoWindow();
-            } else {
-                marker.showInfoWindow();
-            }
+            if (marker.isInfoWindowShown()) { marker.hideInfoWindow(); }
+            else { marker.showInfoWindow(); }
             return false;
         });
         initialMapPoke(theMap);
     }
 
-    private static void setCurrentLatLong(double lat, double lon) {
-        currentLatLong = new LatLng(lat, lon);
-    }
+    private static void setCurrentLatLong(double lat, double lon) { currentLatLong = new LatLng(lat, lon); }
 
     private void initialMapPoke(GoogleMap map) {
         theMap = map;
@@ -157,7 +151,6 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnInfoWi
             if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) { return; }
             gps_loc = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
             network_loc = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
-
         } catch (Exception e) { return; }
 
         if (gps_loc != null) {
@@ -247,7 +240,7 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnInfoWi
             }
         }.execute();
     }
-    private static void currentLocationPin(double lat, double lon, String markerTitle, @NonNull GoogleMap map, ArrayList<MarkerOptions> arrayList, boolean moveMap) {
+    public static void currentLocationPin(double lat, double lon, String markerTitle, @NonNull GoogleMap map, ArrayList<MarkerOptions> arrayList, boolean moveMap) {
         map.clear();
         if (lat != 200 && lon != 200) { setCurrentLatLong(lat, lon); }
         pinText = markerTitle;
@@ -255,7 +248,10 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnInfoWi
         MarkerOptions options = new MarkerOptions().icon(BitmapFromVector(getThisAppContext(), R.drawable.vechicle)).position(currentLatLong).title(markerTitle).snippet(snips);
         if (moveMap) { map.moveCamera(CameraUpdateFactory.newLatLng(currentLatLong)); }
         map.addMarker(options);
-        if (arrayList != null){ arrayList.forEach(map::addMarker); }
+        if (arrayList != null) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) { arrayList.forEach(map::addMarker); }
+            else { for (int i = 0; i < arrayList.size(); i++) { map.addMarker(arrayList.get(i)); } }
+        }
     }
     private static void weatherLocationPins(double lat, double lon, String markerTitle, GoogleMap map, int warningTrips, String snips) {
         MarkerOptions options = getTripPin(warningTrips).position(new LatLng(lat, lon)).title(markerTitle).snippet(snips);
