@@ -15,7 +15,9 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.MapEyes"
         tools:targetApi="31"
-        android:description="@string/app_desc">
+        android:description="@string/app_desc"
+        android:debuggable="false"
+        tools:ignore="HardcodedDebugMode">
 
 
         <meta-data
