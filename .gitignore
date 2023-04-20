@@ -4,6 +4,9 @@ build/
 
 # Local configuration file (sdk path, etc)
 local.properties
+Cert/
+app/release/
+app/build.gradle
 
 # Log/OS Files
 *.log

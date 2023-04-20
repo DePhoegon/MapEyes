@@ -4,6 +4,11 @@ plugins {
 }
 
 android {
+    signingConfigs {
+        debug {
+            
+        }
+    }
     namespace 'com.dephoegon.mapeyes'
     compileSdk 33
 
