@@ -19,8 +19,8 @@ public class GPSLocator implements LocationListener {
     private final Context context;
     private boolean providerDisabled = false;
 
-    public GPSLocator(Context c){ context = c; }
-    public Location GetLocation(){
+    public GPSLocator(Context c) { context = c; }
+    public Location GetLocation() {
         if(ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED){
             Toast.makeText(context, "Fine Permission not granted", Toast.LENGTH_SHORT).show();
             return null;

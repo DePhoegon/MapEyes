@@ -33,6 +33,7 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -55,13 +56,8 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnInfoWi
     Location network_loc;
     Location final_loc;
 
-    private static Context getThisAppContext() {
-        return thisAppContext;
-    }
-
-    private static GoogleMap getMap() {
-        return theMap;
-    }
+    private static Context getThisAppContext() { return thisAppContext; }
+    private static GoogleMap getMap() { return theMap; }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -82,9 +78,7 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnInfoWi
         }
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
-        if (mapFragment != null) {
-            mapFragment.getMapAsync(this);
-        }
+        if (mapFragment != null) { mapFragment.getMapAsync(this); }
     }
 
     @Override
@@ -96,18 +90,14 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnInfoWi
                     Toast.makeText(this, "Permission Granted", Toast.LENGTH_SHORT).show();
                     theMap.setMyLocationEnabled(true);
                 }
-            } else {
-                Toast.makeText(this, "Permission Denied", Toast.LENGTH_SHORT).show();
-            }
+            } else { Toast.makeText(this, "Permission Denied", Toast.LENGTH_SHORT).show(); }
             initialMapPoke(theMap);
         } else if (requestCode == 2) {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 if (ContextCompat.checkSelfPermission(this, Manifest.permission.INTERNET) == PackageManager.PERMISSION_GRANTED) {
                     Toast.makeText(this, "Permission Granted", Toast.LENGTH_SHORT).show();
                 }
-            } else {
-                Toast.makeText(this, "Permission Denied", Toast.LENGTH_SHORT).show();
-            }
+            } else { Toast.makeText(this, "Permission Denied", Toast.LENGTH_SHORT).show(); }
         }
     }
 
@@ -145,14 +135,12 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnInfoWi
         GPSLocator gpsLocator = new GPSLocator(getApplicationContext());
         Location location = gpsLocator.GetLocation();
         LocationManager locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
-        if (location != null) {
-            setCurrentLatLong(location.getLatitude(), location.getLongitude());
-        } else try {
+        if (location != null) { setCurrentLatLong(location.getLatitude(), location.getLongitude()); }
+        else try {
             if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) { return; }
             gps_loc = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
             network_loc = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
         } catch (Exception e) { return; }
-
         if (gps_loc != null) {
             final_loc = gps_loc;
             setCurrentLatLong(final_loc.getLatitude(), final_loc.getLongitude());
@@ -187,53 +175,81 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnInfoWi
             protected void onPostExecute(Void Void) {
                 if (weatherJSON != null) {
                     JSONObject weatherHolder = weatherJSON;
-                    JSONObject mainGroup;
-                    JSONObject windGroup;
-                    int visibility;
-                    double wTemp;
-                    double wSpeed;
-                    double wGusts;
-                    int wDirection;
-                    String wTitle;
+                    JSONObject mainGroup = null;
+                    JSONObject windGroup = null;
+                    JSONArray weatherType;
+                    JSONObject typeHolder;
+                    int visibility = 999999999;
+                    double initialValue = 9999999;
+                    double wTemp = initialValue;
+                    double wSpeed = initialValue;
+                    double wGusts = initialValue;
+                    int wDirection = 0;
+                    double wID = 0;
+                    String wMain = "";
+                    String wDesc = "";
+                    String wTitle = "";
                     int trippedWarnings = 0;
 
                     try { visibility = weatherHolder.getInt("visibility"); }
-                    catch (JSONException e) { return; }
+                    catch (JSONException ignored) {  }
                     try {
                         mainGroup = weatherHolder.getJSONObject("main");
                         wTemp = mainGroup.getDouble("temp");
-                    } catch (JSONException e) { return; } // Mains/temp
+                    } catch (JSONException ignored) {  } // Mains/temp
                     try {
                         windGroup = weatherHolder.getJSONObject("wind");
                         wSpeed = windGroup.getDouble("speed");
                         wGusts = windGroup.getDouble("gust");
                         wDirection = windGroup.getInt("deg");
-                    } catch (JSONException e) { return; } // Winds
+                    } catch (JSONException ignored) {  } // Winds
                     try { wTitle = "| "+weatherHolder.getString("name")+" |"; }
-                    catch (JSONException e) { return; }
+                    catch (JSONException ignored) { }
+                    try {
+                        weatherType = weatherHolder.getJSONArray("weather");
+                        typeHolder = weatherType.getJSONObject(0);
+                        if (typeHolder.has("id")) { wID = typeHolder.getInt("id"); }
+                        if (typeHolder.has("main")) { wMain = typeHolder.getString("main"); }
+                        if (typeHolder.has("description")) { wDesc = typeHolder.getString("description"); }
+                    }  catch (JSONException ignored) {  }
                     String snipping = "";
+                    boolean safeEnoughTrip = false;
+                    if (wID > 199 && wID < 800) {
+                        snipping = snipping + wMain + " | ";
+                        if (wID < 211 || (wID > 299 && wID <310) || (wID > 499 && wID < 503) || wID == 600 || wID == 701) {
+                            trippedWarnings += 1;
+                            safeEnoughTrip = true;
+                        }
+                        else if (wID > 750) { trippedWarnings += 3; }
+                        else { trippedWarnings += 2; }
+                        if (!safeEnoughTrip) { snipping = snipping + wDesc + " | "; }
+                    }
                     if (weatherHolder.has("main")) {
                         if (weatherHolder.has("visibility") && visibility < 500) {
                             snipping = snipping + "Low Vis-> " + visibility + "Meters | ";
                             trippedWarnings += 1;
                         }
-                        if (mainGroup.has("temp")) {
+                        assert mainGroup != null;
+                        if (mainGroup.has("temp") && wTemp != initialValue) {
                             double hold = Maths.Fahrenheit(wTemp);
                             wTitle = wTitle + " - Temp -> "+ String.format(Locale.US, "%.2f", hold)+"F°";
                         }
-                        if (windGroup.has("speed")) {
-                            if (wSpeed > 25) {
-                                snipping = snipping + "Wind-> " + String.format(Locale.US, "%.2f", wSpeed)+" | ";
-                                trippedWarnings +=1;
+                        if (windGroup != null && windGroup.has("speed")) {
+                            if (wSpeed > 25 && wSpeed != initialValue) {
+                                snipping = snipping + "Wind-> " + String.format(Locale.US, "%.2f", wSpeed) + " | ";
+                                trippedWarnings += 1;
                             }
-                            if (wGusts > 35) {
-                                snipping = snipping + "Gusts-> " + String.format(Locale.US, "%.2f", wGusts)+" | ";
-                                trippedWarnings +=1;
+                            if (wGusts > 35 && wGusts != initialValue) {
+                                snipping = snipping + "Gusts-> " + String.format(Locale.US, "%.2f", wGusts) + " | ";
+                                trippedWarnings += 1;
                             }
                             String Dir = Maths.Direction(wDirection);
                             if (!Dir.equals("invalid")) { wTitle = wTitle + " - Wind Dir -> " + Dir; }
                         }
                     }
+                    if (safeEnoughTrip && trippedWarnings == 1) { snipping = snipping + "Friendly Enough Driving weather"; }
+                    else if (!safeEnoughTrip && trippedWarnings == 1) { snipping = snipping + "Driving weather"; }
+                    if (trippedWarnings == 2)  { snipping = snipping + "Use Caution"; }
                     if (snipping.equals("")) { snipping = "Friendly Enough Driving weather"; }
                     weatherLocationPins(lat, lon, wTitle, map, trippedWarnings, snipping);
                 }
