@@ -3,16 +3,25 @@ plugins {
     id 'com.google.android.libraries.mapsplatform.secrets-gradle-plugin'
 }
 
+ext {
+    minimum = 21
+    currTarget = 33
+    projectVersion = 2
+    projectName = "Weather Inclusion"
+    releaseSuffix = '_release V' + projectVersion
+    debugSuffix = '_debug'
+}
+
 android {
     namespace 'com.dephoegon.mapeyes'
-    compileSdk 33
+    compileSdk currTarget
 
     defaultConfig {
         applicationId "com.dephoegon.mapeyes"
-        minSdk 21
-        targetSdk 33
-        versionCode 1
-        versionName "1.0 - Init"
+        minSdk minimum
+        targetSdk currTarget
+        versionCode projectVersion
+        versionName projectName
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -24,13 +33,12 @@ android {
             debuggable false
             jniDebuggable false
             renderscriptDebuggable false
-            versionNameSuffix 'release'
         }
         debug {
             renderscriptDebuggable true
             jniDebuggable true
             debuggable true
-            versionNameSuffix 'debug'
+            versionNameSuffix debugSuffix
         }
     }
     compileOptions {
